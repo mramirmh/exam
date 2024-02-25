@@ -12,7 +12,7 @@ import { FC, SetStateAction, useEffect, useRef, useState } from "react";
 import { e2p } from "../utils/replaceNumber";
 import { Cookie, Place } from "@mui/icons-material";
 import Select from "react-select";
-import { Button, Snackbar } from "@mui/material";
+import { Button, CircularProgress, Snackbar } from "@mui/material";
 import Cookies from "universal-cookie";
 import axios from "axios";
 
@@ -31,9 +31,23 @@ interface Ilocation {
   };
 }
 
+interface Ilist {
+  id: number;
+  name: string;
+}
+
 interface Idata {
   data: {
-    data: [{ id: number; name: string }];
+    data: Ilist;
+    status: number;
+    message: string;
+    userToken: string;
+  };
+}
+
+interface Ipost {
+  data: {
+    data: { requestNo: string };
     status: number;
     message: string;
     userToken: string;
@@ -42,13 +56,14 @@ interface Idata {
 function Location() {
   const position: [number, number] = [29.5926, 52.5836];
 
-  const [position1, setPosition1] = useState<LatLngExpression | null>(null);
-  const [position2, setPosition2] = useState<LatLngExpression | null>(null);
+  const [position1, setPosition1] = useState<{} | null>(null);
+  const [position2, setPosition2] = useState<{} | null>(null);
   const [query, setQuery] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const [option, setOption] = useState<undefined>([]);
+  const [option, setOption] = useState<[] | null>([]);
   const [errorAlert, setErrorAlert] = useState<boolean>(false);
   const [errorSnac, setErrorSnac] = useState<string>("");
+  const [loadingPost, setLoadingPost] = useState<boolean>(false);
 
   const cookie = new Cookies();
 
@@ -58,40 +73,70 @@ function Location() {
     setErrorAlert(true);
     setErrorSnac(errorMessage);
   };
+  const getVehicleUsers = async () => {
+    setLoading(true);
+
+    try {
+      if (userToken) {
+        if (query.length >= 2) {
+          const response: Idata = await axios.get(
+            `https://exam.pishgamanasia.com/webapi/Request/GetVehicleUsers?SearchTerm=${query}&UserToken=${userToken}`,
+
+            {
+              headers: {
+                Authorization: `Bearer ${userToken}`,
+              },
+            },
+          );
+          if (response.data.status === 1) {
+            setOption(response.data.data);
+          }
+          if (response.data.status === 0) {
+            showAlert(response.data.message);
+          }
+        }
+      } else {
+        showAlert("مشکلی پیش آمده است");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+    setLoading(false);
+  };
+
+  const SendRequest = async () => {
+    setLoadingPost(true);
+    try {
+      const response: Ipost = await axios.post(
+        "https://exam.pishgamanasia.com/webapi/Request/SendRequest",
+        {
+          userToken,
+          vehicleUserTypeId: Number(query),
+          source: position1.lat.toString() + "," + position1.lng.toString(),
+          destination:
+            position2.lat.toString() + "," + position2.lng.toString(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        },
+      );
+      if (response.data.status === 1) {
+        showAlert(`درخواست شما : ${response.data.data.requestNo}`);
+      }
+      if (response.data.status === 0) {
+        showAlert(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      showAlert("مشکلی پیش آمده است");
+    }
+    setLoadingPost(false);
+  };
 
   useEffect(() => {
-    const getVehicleUsers = async () => {
-      setLoading(true);
-
-      try {
-        if (userToken) {
-          if (query.length >= 2) {
-            const response: Idata = await axios.get(
-              `https://exam.pishgamanasia.com/webapi/Request/GetVehicleUsers?SearchTerm=${query}&UserToken=${userToken}`,
-
-              {
-                headers: {
-                  Authorization: `Bearer ${userToken}`,
-                },
-              },
-            );
-            if (response.data.status === 1) {
-              setOption(response.data.data);
-              console.log(option);
-            }
-            if (response.data.status === 0) {
-              showAlert(response.data.message);
-            }
-          }
-        } else {
-          showAlert("مشکلی پیش آمده است");
-        }
-      } catch (error) {
-        console.error("Error:", error);
-      }
-    };
     getVehicleUsers();
-    setLoading(false);
   }, [query]);
 
   function LocationMarker() {
@@ -129,7 +174,7 @@ function Location() {
       <Snackbar
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
         open={errorAlert}
-        autoHideDuration={4000}
+        autoHideDuration={3000}
         onClose={() => setErrorAlert(false)}
         message={errorSnac}
       />
@@ -190,8 +235,15 @@ function Location() {
               ثبت درخواست
             </Button>
           ) : (
-            <Button className=" rounded-lg bg-yellow-400 text-lg text-black">
-              ثبت درخواست
+            <Button
+              onClick={() => SendRequest()}
+              className=" rounded-lg bg-yellow-400 text-lg text-black"
+            >
+              {loadingPost === true ? (
+                <CircularProgress className=" text-red-400" />
+              ) : (
+                "ثبت درخواست"
+              )}
             </Button>
           )}
         </div>

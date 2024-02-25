@@ -61,7 +61,7 @@ function Login() {
       <Snackbar
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
         open={errorAlert}
-        autoHideDuration={4000}
+        autoHideDuration={3000}
         onClose={() => setErrorAlert(false)}
         message={errorSnac}
       />
