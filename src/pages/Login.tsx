@@ -20,7 +20,7 @@ interface IFormInputs {
 function Login() {
   const [loading, setLoading] = useState<boolean>(false);
   const [errorAlert, setErrorAlert] = useState<boolean>(false);
-  const [errorSnac, setErrorSnac] = useState("");
+  const [errorSnac, setErrorSnac] = useState<string>("");
   const {
     register,
     handleSubmit,
