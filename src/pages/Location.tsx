@@ -7,10 +7,10 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "./Location.css";
-import { Icon, LatLngExpression } from "leaflet";
-import { FC, SetStateAction, useEffect, useRef, useState } from "react";
+import { Icon, LatLng } from "leaflet";
+import { useState } from "react";
 import { e2p } from "../utils/replaceNumber";
-import { Cookie, Place } from "@mui/icons-material";
+import { Place } from "@mui/icons-material";
 import Select from "react-select";
 import { Button, CircularProgress, Snackbar } from "@mui/material";
 import Cookies from "universal-cookie";
@@ -24,25 +24,10 @@ const icon2 = new Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/512/149/149060.png",
   iconSize: [38, 38],
 });
-interface Ilocation {
-  latlng: {
-    lat: number;
-    lng: number;
-  };
-}
 
-interface Ilist {
-  id: number;
+interface IoptionType {
+  id: string;
   name: string;
-}
-
-interface Idata {
-  data: {
-    data: Ilist;
-    status: number;
-    message: string;
-    userToken: string;
-  };
 }
 
 interface Ipost {
@@ -53,41 +38,36 @@ interface Ipost {
     userToken: string;
   };
 }
+const cookie = new Cookies();
+const userToken: string = cookie.get("userToken");
+
 function Location() {
   const position: [number, number] = [29.5926, 52.5836];
-
-  const [position1, setPosition1] = useState<{} | null>(null);
-  const [position2, setPosition2] = useState<{} | null>(null);
-  const [query, setQuery] = useState<string>("");
+  const [position1, setPosition1] = useState<LatLng | null>(null);
+  const [position2, setPosition2] = useState<LatLng | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [option, setOption] = useState<[] | null>([]);
+  const [query, setQuery] = useState<string>("");
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [option, setOption] = useState<IoptionType[]>([]);
   const [errorAlert, setErrorAlert] = useState<boolean>(false);
   const [errorSnac, setErrorSnac] = useState<string>("");
   const [loadingPost, setLoadingPost] = useState<boolean>(false);
-
-  const cookie = new Cookies();
-
-  const userToken: string = cookie.get("userToken");
+  const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
 
   const showAlert = (errorMessage: string) => {
     setErrorAlert(true);
     setErrorSnac(errorMessage);
   };
-  const getVehicleUsers = async () => {
-    setLoading(true);
 
+  const getVehicleUsers = async (value: string) => {
+    setLoading(true);
     try {
       if (userToken) {
-        if (query.length >= 2) {
-          const response: Idata = await axios.get(
-            `https://exam.pishgamanasia.com/webapi/Request/GetVehicleUsers?SearchTerm=${query}&UserToken=${userToken}`,
-
-            {
-              headers: {
-                Authorization: `Bearer ${userToken}`,
-              },
-            },
+        if (value.length > 1) {
+          const response = await axios.get(
+            `https://exam.pishgamanasia.com/webapi/Request/GetVehicleUsers?SearchTerm=${value}&UserToken=${userToken}`,
           );
+
           if (response.data.status === 1) {
             setOption(response.data.data);
           }
@@ -104,29 +84,36 @@ function Location() {
     setLoading(false);
   };
 
+  const handleInputChange = (newValue: string) => {
+    setQuery(newValue);
+    if (timer) clearTimeout(timer);
+    setTimer(
+      setTimeout(() => {
+        getVehicleUsers(newValue);
+      }, 0),
+    );
+  };
+
   const SendRequest = async () => {
     setLoadingPost(true);
     try {
-      const response: Ipost = await axios.post(
-        "https://exam.pishgamanasia.com/webapi/Request/SendRequest",
-        {
-          userToken,
-          vehicleUserTypeId: Number(query),
-          source: position1.lat.toString() + "," + position1.lng.toString(),
-          destination:
-            position2.lat.toString() + "," + position2.lng.toString(),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${userToken}`,
+      if (position1 && position2) {
+        const response: Ipost = await axios.post(
+          "https://exam.pishgamanasia.com/webapi/Request/SendRequest",
+          {
+            userToken,
+            vehicleUserTypeId: Number(selectedItem),
+            source: position1.lat.toString() + "," + position1.lng.toString(),
+            destination:
+              position2.lat.toString() + "," + position2.lng.toString(),
           },
-        },
-      );
-      if (response.data.status === 1) {
-        showAlert(`درخواست شما : ${response.data.data.requestNo}`);
-      }
-      if (response.data.status === 0) {
-        showAlert(response.data.message);
+        );
+        if (response.data.status === 1) {
+          showAlert(`درخواست شما : ${response.data.data.requestNo}`);
+        }
+        if (response.data.status === 0) {
+          showAlert(response.data.message);
+        }
       }
     } catch (error) {
       console.error("Error:", error);
@@ -134,10 +121,6 @@ function Location() {
     }
     setLoadingPost(false);
   };
-
-  useEffect(() => {
-    getVehicleUsers();
-  }, [query]);
 
   function LocationMarker() {
     useMapEvents({
@@ -152,6 +135,11 @@ function Location() {
         }
       },
     });
+
+    // useEffect(() => {
+    //   // getVehicleUsers();
+    //   // .log("yhgyhv");
+    // }, [query]);
 
     return (
       <>
@@ -213,10 +201,11 @@ function Location() {
           </div>
           <Select
             options={option}
-            onChange={(e) => setQuery(e)}
-            // value={(e) => setQuery(e)}
-            onInputChange={(e) => setQuery(e)}
+            onChange={(e) => setSelectedItem(e.id)}
+            onInputChange={handleInputChange}
             placeholder="نوع ماشین آلات"
+            getOptionValue={(value) => value.id}
+            getOptionLabel={(option) => option.name}
             noOptionsMessage={({ inputValue }) =>
               `هیچ ماشین آلاتی برای "${inputValue}" وجود ندارد`
             }
