@@ -97,23 +97,27 @@ function Location() {
   const SendRequest = async () => {
     setLoadingPost(true);
     try {
-      if (position1 && position2) {
-        const response: Ipost = await axios.post(
-          "https://exam.pishgamanasia.com/webapi/Request/SendRequest",
-          {
-            userToken,
-            vehicleUserTypeId: Number(selectedItem),
-            source: position1.lat.toString() + "," + position1.lng.toString(),
-            destination:
-              position2.lat.toString() + "," + position2.lng.toString(),
-          },
-        );
-        if (response.data.status === 1) {
-          showAlert(`درخواست شما : ${response.data.data.requestNo}`);
+      if (userToken) {
+        if (position1 && position2) {
+          const response: Ipost = await axios.post(
+            "https://exam.pishgamanasia.com/webapi/Request/SendRequest",
+            {
+              userToken,
+              vehicleUserTypeId: Number(selectedItem),
+              source: position1.lat.toString() + "," + position1.lng.toString(),
+              destination:
+                position2.lat.toString() + "," + position2.lng.toString(),
+            },
+          );
+          if (response.data.status === 1) {
+            showAlert(`درخواست شما : ${response.data.data.requestNo}`);
+          }
+          if (response.data.status === 0) {
+            showAlert(response.data.message);
+          }
         }
-        if (response.data.status === 0) {
-          showAlert(response.data.message);
-        }
+      } else {
+        showAlert("مشکلی پیش آمده است");
       }
     } catch (error) {
       console.error("Error:", error);
