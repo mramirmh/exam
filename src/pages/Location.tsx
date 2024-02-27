@@ -8,7 +8,7 @@ import {
 import "leaflet/dist/leaflet.css";
 import "./Location.css";
 import { Icon, LatLng } from "leaflet";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { e2p } from "../utils/replaceNumber";
 import { Place } from "@mui/icons-material";
 import Select from "react-select";
@@ -46,26 +46,25 @@ function Location() {
   const [position1, setPosition1] = useState<LatLng | null>(null);
   const [position2, setPosition2] = useState<LatLng | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  // const [query, setQuery] = useState<string>("");
+  const [query, setQuery] = useState<string>("");
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [option, setOption] = useState<IoptionType[]>([]);
   const [errorAlert, setErrorAlert] = useState<boolean>(false);
   const [errorSnac, setErrorSnac] = useState<string>("");
   const [loadingPost, setLoadingPost] = useState<boolean>(false);
-  const [timer, setTimer] = useState<number | null>(null);
 
   const showAlert = (errorMessage: string) => {
     setErrorAlert(true);
     setErrorSnac(errorMessage);
   };
 
-  const getVehicleUsers = async (value: string) => {
+  const getVehicleUsers = async () => {
     setLoading(true);
     try {
       if (userToken) {
-        if (value.length > 1) {
+        if (query.length > 1) {
           const response = await axios.get(
-            `https://exam.pishgamanasia.com/webapi/Request/GetVehicleUsers?SearchTerm=${value}&UserToken=${userToken}`,
+            `https://exam.pishgamanasia.com/webapi/Request/GetVehicleUsers?SearchTerm=${query}&UserToken=${userToken}`,
           );
 
           if (response.data.status === 1) {
@@ -84,15 +83,15 @@ function Location() {
     setLoading(false);
   };
 
-  const handleInputChange = (newValue: string) => {
-    // setQuery(newValue);
-    if (timer) clearTimeout(timer);
-    setTimer(
-      setTimeout(() => {
-        getVehicleUsers(newValue);
-      }, 0),
-    );
-  };
+  // const handleInputChange = (newValue: string) => {
+  //   // setQuery(newValue);
+  //   if (timer) clearTimeout(timer);
+  //   setTimer(
+  //     setTimeout(() => {
+  //       getVehicleUsers(newValue);
+  //     }, 0),
+  //   );
+  // };
 
   const SendRequest = async () => {
     setLoadingPost(true);
@@ -140,11 +139,6 @@ function Location() {
       },
     });
 
-    // useEffect(() => {
-    //   // getVehicleUsers();
-    //   // .log("yhgyhv");
-    // }, [query]);
-
     return (
       <>
         {position1 && (
@@ -161,6 +155,10 @@ function Location() {
     );
   }
 
+  useEffect(() => {
+    getVehicleUsers();
+    // .log("yhgyhv");
+  }, [query]);
   return (
     <>
       <Snackbar
@@ -206,7 +204,7 @@ function Location() {
           <Select
             options={option}
             onChange={(e) => setSelectedItem(e!.id)}
-            onInputChange={handleInputChange}
+            onInputChange={(e) => setQuery(e)}
             placeholder="نوع ماشین آلات"
             getOptionValue={(value) => value.id}
             getOptionLabel={(option) => option.name}
