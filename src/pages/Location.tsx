@@ -46,13 +46,13 @@ function Location() {
   const [position1, setPosition1] = useState<LatLng | null>(null);
   const [position2, setPosition2] = useState<LatLng | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [query, setQuery] = useState<string>("");
+  // const [query, setQuery] = useState<string>("");
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [option, setOption] = useState<IoptionType[]>([]);
   const [errorAlert, setErrorAlert] = useState<boolean>(false);
   const [errorSnac, setErrorSnac] = useState<string>("");
   const [loadingPost, setLoadingPost] = useState<boolean>(false);
-  const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
+  const [timer, setTimer] = useState<number | null>(null);
 
   const showAlert = (errorMessage: string) => {
     setErrorAlert(true);
@@ -85,7 +85,7 @@ function Location() {
   };
 
   const handleInputChange = (newValue: string) => {
-    setQuery(newValue);
+    // setQuery(newValue);
     if (timer) clearTimeout(timer);
     setTimer(
       setTimeout(() => {
@@ -103,7 +103,7 @@ function Location() {
             "https://exam.pishgamanasia.com/webapi/Request/SendRequest",
             {
               userToken,
-              vehicleUserTypeId: Number(selectedItem),
+              vehicleUserTypeId: selectedItem,
               source: position1.lat.toString() + "," + position1.lng.toString(),
               destination:
                 position2.lat.toString() + "," + position2.lng.toString(),
@@ -205,7 +205,7 @@ function Location() {
           </div>
           <Select
             options={option}
-            onChange={(e) => setSelectedItem(e.id)}
+            onChange={(e) => setSelectedItem(e!.id)}
             onInputChange={handleInputChange}
             placeholder="نوع ماشین آلات"
             getOptionValue={(value) => value.id}
